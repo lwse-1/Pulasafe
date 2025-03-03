@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -8,12 +8,17 @@ import {
   SafeAreaView, 
   Image,
   TextInput,
-  FlatList
+  FlatList,
 } from 'react-native';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { createClient } from '@supabase/supabase-js';
+import { useAuth } from '@/app/AuthContext';
+import { supabaseUrl, supabaseAnonKey } from '../supabase/supabase';
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface Message {
   id: number;
@@ -39,7 +44,6 @@ const MessageItem = ({ message, onPress }: { message: Message; onPress: OnPressF
   const tabBarHeight = useBottomTabBarHeight();
 
   return (
-    <View style={[styles.container, { paddingBottom: tabBarHeight }]}>
     <TouchableOpacity 
       style={[styles.messageItem, { borderBottomColor: isDark ? '#333' : '#f0f0f0' }]} 
       onPress={() => onPress(message)}
@@ -86,7 +90,6 @@ const MessageItem = ({ message, onPress }: { message: Message; onPress: OnPressF
         )}
       </View>
     </TouchableOpacity>
-    </View>
   );
 };
 

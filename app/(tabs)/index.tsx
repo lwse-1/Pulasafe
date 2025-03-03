@@ -253,7 +253,7 @@ export default function HomeDashboard() {
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#f8f9fa' }]}>
       <ScrollView>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Pulse Safety</Text>
+          <Text style={styles.headerTitle}>Pula Safe</Text>
           <TouchableOpacity style={styles.notificationButton}>
             <IconSymbol size={24} name="bell.fill" color={Colors[colorScheme].text} />
             <View style={styles.notificationBadge}>
