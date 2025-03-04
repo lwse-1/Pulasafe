@@ -100,7 +100,6 @@ export default function ForgotPassScreen() {
   );
 }
 
-// Reuse the same styles from LoginScreen
 const styles = StyleSheet.create({
   gradientBackground: {
     flex: 1,
