@@ -9,26 +9,80 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { supabase } from '../app/supabase/supabaseClient';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+
+type RootStackParamList = {
+   'login': undefined;
+};
 
 export default function SignUpScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
-  const handleSignUp = () => {
-    if (password !== confirmPassword) {
-      alert('Passwords do not match');
+  const handleBackToLogin = () => {
+    navigation.navigate('login')
+  }
+
+  const handleSignUp = async () => {
+    if (!email || !password || !fullName || !phoneNumber) {
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-    console.log('Sign up with:', email, password);
-    router.replace('/(tabs)');
+    
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            phone_number: phoneNumber,
+          },
+        },
+      });
+
+      if (error) {
+        Alert.alert('Error', (error as any).message);
+        return;
+      }
+
+      Alert.alert(
+        'Registration successful',
+        'Please check your email for confirmation instructions',
+        [{ text: 'OK', onPress: () => router.replace('/login') }]
+      );
+    } catch (error: any) {
+      Alert.alert('Error signing up', error.message);
+      console.error('Error signing up:', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -42,13 +96,11 @@ export default function SignUpScreen() {
           style={styles.keyboardAvoidView}
         >
           <ScrollView contentContainerStyle={styles.scrollContainer}>
-            {/* Logo and Background Design */}
             <View style={styles.decorationTop}>
               <View style={styles.circle1} />
               <View style={styles.circle2} />
             </View>
 
-            {/* Logo */}
             <View style={styles.logoContainer}>
               <Image
                 source={{ uri: 'https://via.placeholder.com/150' }}
@@ -57,12 +109,10 @@ export default function SignUpScreen() {
               <Text style={styles.appName}>PULSASAFE</Text>
             </View>
 
-            {/* Sign Up Form */}
             <View style={styles.formContainer}>
               <Text style={styles.welcomeText}>Create Account</Text>
               <Text style={styles.loginText}>Sign up to get started</Text>
 
-              {/* Email Field */}
               <View style={styles.inputContainer}>
                 <Ionicons name="mail-outline" size={20} color="#3949ab" style={styles.inputIcon} />
                 <TextInput
@@ -73,10 +123,36 @@ export default function SignUpScreen() {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  editable={!loading} // Disable input when loading
                 />
               </View>
 
-              {/* Password Field */}
+              <View style={styles.inputContainer}>
+                <Ionicons name="person" size={20} color="#3949ab" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Full Name"
+                  placeholderTextColor="#9e9e9e"
+                  value={fullName}
+                  onChangeText={setFullName}
+                  autoCapitalize="words"
+                  editable={!loading} 
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Ionicons name="call" size={20} color="#3949ab" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Phone Number"
+                  placeholderTextColor="#9e9e9e"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  keyboardType="phone-pad"
+                  editable={!loading}
+                />
+              </View>
+
               <View style={styles.inputContainer}>
                 <Ionicons name="lock-closed-outline" size={20} color="#3949ab" style={styles.inputIcon} />
                 <TextInput
@@ -86,6 +162,7 @@ export default function SignUpScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  editable={!loading}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
@@ -99,7 +176,6 @@ export default function SignUpScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Confirm Password Field */}
               <View style={styles.inputContainer}>
                 <Ionicons name="lock-closed-outline" size={20} color="#3949ab" style={styles.inputIcon} />
                 <TextInput
@@ -109,6 +185,7 @@ export default function SignUpScreen() {
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
+                  editable={!loading} 
                 />
                 <TouchableOpacity
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -122,31 +199,35 @@ export default function SignUpScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Sign Up Button */}
-              <TouchableOpacity onPress={handleSignUp} style={styles.loginButton}>
+              <TouchableOpacity 
+                onPress={handleSignUp} 
+                style={styles.loginButton}
+                disabled={loading}
+              >
                 <LinearGradient
                   colors={['#1a237e', '#3949ab']}
                   style={styles.loginGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
-                  <Text style={styles.loginButtonText}>SIGN UP</Text>
+                  <Text style={styles.loginButtonText}>
+                    {loading ? 'SIGNING UP...' : 'SIGN UP'}
+                  </Text>
                 </LinearGradient>
               </TouchableOpacity>
 
-              {/* Already have an account? */}
               <View style={styles.signupContainer}>
                 <Text style={styles.noAccountText}>Already have an account? </Text>
-                <TouchableOpacity onPress={() => router.replace('/login')}>
+                <TouchableOpacity 
+                onPress={handleBackToLogin}
+                style={({ pressed }) => [
+                  { opacity: pressed ? 0.5 : 1 }
+                ]}>
                   <Text style={styles.signupText}>Login</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            <View style={styles.decorationBottom}>
-              <View style={styles.circle3} />
-              <View style={styles.circle4} />
-            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -154,7 +235,6 @@ export default function SignUpScreen() {
   );
 }
 
-// Reuse the same styles from LoginScreen
 const styles = StyleSheet.create({
   gradientBackground: {
     flex: 1,

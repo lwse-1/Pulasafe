@@ -333,11 +333,6 @@ export default function AlertListScreen() {
           </View>
         }
       />
-      
-      {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab}>
-        <IconSymbol size={24} name="plus" color="#fff" />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }

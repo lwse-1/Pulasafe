@@ -301,19 +301,13 @@ export default function HomeDashboard() {
       imageUrl: 'https://example.com/images/poweroutage1.jpg'
     },
   ];
-
+  
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#f8f9fa' }]}>
       <ScrollView>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Pula Safe</Text>
           <View style={styles.headerIconsContainer}>
-
-        {/* Message Icon */}
-         <TouchableOpacity style={styles.messageButton}
-          onPress={() => router.push('/messaging')}>
-        <IconSymbol size={24} name="message.fill" color={Colors[colorScheme].text} />
-          </TouchableOpacity>
 
          {/* Notification Icon */}
           <TouchableOpacity style={styles.notificationButton}
@@ -323,8 +317,14 @@ export default function HomeDashboard() {
               <Text style={styles.notificationCount}>3</Text>
             </View>
           </TouchableOpacity>
+
+            {/* Message Icon */}
+            <TouchableOpacity style={styles.messageButton}
+      onPress={() => router.push('/messaging')}>
+          <IconSymbol size={24} name="message.fill" color={Colors[colorScheme].text} />
+          </TouchableOpacity>
         </View>
-              </View>
+      </View>
 
         {/* New Post Bar (replacing the carousel) */}
         <NewPostBar />
@@ -536,64 +536,100 @@ const styles = StyleSheet.create({
     color: '#4a6ed0',
     marginRight: 4,
   },
-  whatsappStatsLabel: {
-    fontSize: 14,
-    opacity: 0.7,
-  },
-  whatsappMessage: {
+  expandButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
   },
-  userIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
+  expandText: {
+    fontSize: 14,
+    color: '#4a6ed0',
+    marginRight: 4,
+  },
+  alertItem: {
+    flexDirection: 'column',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  alertImage: {
+    height: 140,
+    width: '100%',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  alertContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  alertItemLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
+    flex: 2,
+  },
+  alertId: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    backgroundColor: '#4a6ed0',
+    color: 'white',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    textAlign: 'center',
+    lineHeight: 30,
     marginRight: 12,
   },
-  messageDetails: {
-    flex: 1,
+  alertDetails: {
+    flexDirection: 'column',
   },
-  messageTitle: {
-    fontSize: 14,
+  alertLocation: {
+    fontSize: 16,
     fontWeight: '500',
     marginBottom: 4,
   },
-  messageLocation: {
-    fontSize: 13,
-    opacity: 0.7,
+  alertCategory: {
+    fontSize: 14,
+    color: '#777',
   },
-  messageTime: {
+  alertItemRight: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    flex: 1,
+  },
+  severityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  severityText: {
     fontSize: 12,
-    opacity: 0.7,
+    fontWeight: 'bold',
   },
-  // Donut Chart
+  timestamp: {
+    fontSize: 12,
+    color: '#777',
+  },
   donutChartContainer: {
     flexDirection: 'row',
+    padding: 16,
     alignItems: 'center',
   },
   donutChartPlaceholder: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    borderWidth: 15,
-    borderColor: '#FBBC05',
+    backgroundColor: '#f5f5f5',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
   donutChartTotal: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
   },
   donutChartTotalLabel: {
-    fontSize: 12,
-    opacity: 0.7,
+    fontSize: 14,
+    color: '#777',
   },
   categoryList: {
     flex: 1,
@@ -615,57 +651,60 @@ const styles = StyleSheet.create({
   },
   categoryCount: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: 'bold',
   },
   toggleContainer: {
     flexDirection: 'row',
-    borderRadius: 16,
-    backgroundColor: '#f0f0f0',
-    overflow: 'hidden',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 20,
+    padding: 2,
   },
   toggleButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
+    borderRadius: 18,
   },
   toggleActive: {
-    backgroundColor: '#6366f1',
+    backgroundColor: 'white',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
   toggleText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#555',
   },
-  card: {
-    borderRadius: 12,
+  whatsappStatsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  whatsappIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(37, 211, 102, 0.1)',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginRight: 16,
   },
-  cardTitle: {
-    fontSize: 18,
+  whatsappStats: {
+    flex: 1,
+  },
+  whatsappStatsValue: {
+    fontSize: 20,
     fontWeight: 'bold',
+    marginBottom: 4,
   },
-  viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  viewAllText: {
+  whatsappStatsLabel: {
     fontSize: 14,
-    marginRight: 4,
-    color: '#6366f1',
+    color: '#777',
   },
-  expandButton: {
+  whatsappMessage: {
     flexDirection: 'row',
     padding: 12,
     borderBottomWidth: 1,

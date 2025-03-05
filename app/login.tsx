@@ -64,7 +64,7 @@ export default function LoginScreen() {
   };
 
   const handleForgotPassword = () => {
-    router.replace('/forgotPass');
+    navigation.navigate('forgotPass');
   };
 
   const handleSignUp = () => {
@@ -130,7 +130,7 @@ export default function LoginScreen() {
                 source={{ uri: 'https://via.placeholder.com/150' }}
                 style={styles.logo}
               />
-              <Text style={styles.appName}>PULSASAFE</Text>
+              <Text style={styles.appName}>PULA SAFE</Text>
             </View>
 
             {/* Login Form */}
@@ -193,14 +193,20 @@ export default function LoginScreen() {
               </View>
 
               {/* Login Button */}
-              <TouchableOpacity onPress={handleLogin} style={styles.loginButton}>
+              <TouchableOpacity
+                onPress={handleLogin}
+                style={styles.loginButton}
+                disabled={loading}
+              >
                 <LinearGradient
                   colors={['#1a237e', '#3949ab']}
                   style={styles.loginGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
-                  <Text style={styles.loginButtonText}>SIGN IN</Text>
+                  <Text style={styles.loginButtonText}>
+                    {loading ? 'SIGNING IN...' : 'SIGN IN'}
+                  </Text>
                 </LinearGradient>
               </TouchableOpacity>
 
@@ -212,13 +218,13 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.socialContainer}>
-                <TouchableOpacity style={styles.socialButton}>
+                <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn}>
                   <Ionicons name="logo-google" size={22} color="#DB4437" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.socialButton}>
+                <TouchableOpacity style={styles.socialButton} onPress={handleAppleSignIn}>
                   <Ionicons name="logo-apple" size={22} color="#000" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.socialButton}>
+                <TouchableOpacity style={styles.socialButton} onPress={handleFacebookSignIn}>
                   <Ionicons name="logo-facebook" size={22} color="#4267B2" />
                 </TouchableOpacity>
               </View>
@@ -226,15 +232,16 @@ export default function LoginScreen() {
               {/* Sign Up */}
               <View style={styles.signupContainer}>
                 <Text style={styles.noAccountText}>Don't have an account? </Text>
-                <TouchableOpacity onPress={handleSignUp}>
-                  <Text style={styles.signupText}>Sign Up</Text>
-                </TouchableOpacity>
+                <TouchableOpacity 
+                onPress={handleSignUp}
+                // Add some visual feedback
+                style={({ pressed }) => [
+                  { opacity: pressed ? 0.5 : 1 }
+                ]}
+              >
+                <Text style={styles.signupText}>Sign Up</Text>
+              </TouchableOpacity>
               </View>
-            </View>
-
-            <View style={styles.decorationBottom}>
-              <View style={styles.circle3} />
-              <View style={styles.circle4} />
             </View>
           </ScrollView>
         </KeyboardAvoidingView>

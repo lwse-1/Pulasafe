@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  SafeAreaView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
   Image,
   TextInput,
   FlatList,
@@ -13,12 +13,15 @@ import {
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { createClient } from '@supabase/supabase-js';
 import { useAuth } from '@/app/AuthContext';
-import { supabaseUrl, supabaseAnonKey } from '../supabase/supabase';
+import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(
+  process.env.EXPO_PUBLIC_SUPABASE_URL || "",
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "",
+)
 
 interface Message {
   id: number;
@@ -41,11 +44,10 @@ type OnBackFunction = () => void;
 const MessageItem = ({ message, onPress }: { message: Message; onPress: OnPressFunction }) => {
   const colorScheme = useColorScheme() || 'light';
   const isDark = colorScheme === 'dark';
-  const tabBarHeight = useBottomTabBarHeight();
 
   return (
-    <TouchableOpacity 
-      style={[styles.messageItem, { borderBottomColor: isDark ? '#333' : '#f0f0f0' }]} 
+    <TouchableOpacity
+      style={[styles.messageItem, { borderBottomColor: isDark ? '#333' : '#f0f0f0' }]}
       onPress={() => onPress(message)}
     >
       <View style={styles.userAvatar}>
@@ -58,29 +60,29 @@ const MessageItem = ({ message, onPress }: { message: Message; onPress: OnPressF
         )}
         {message.isOnline && <View style={styles.onlineIndicator} />}
       </View>
-      
+
       <View style={styles.messageContent}>
         <View style={styles.messageHeader}>
           <Text style={[styles.userName, { color: isDark ? '#fff' : '#000' }]}>{message.name}</Text>
           <Text style={styles.messageTime}>{message.time}</Text>
         </View>
-        
+
         <View style={styles.messagePreviewContainer}>
-          <Text 
+          <Text
             style={[styles.messagePreview, { color: isDark ? '#ddd' : '#555' }]}
             numberOfLines={1}
             ellipsizeMode="tail"
           >
             {message.lastMessage}
           </Text>
-          
+
           {message.unreadCount > 0 && (
             <View style={styles.unreadBadge}>
               <Text style={styles.unreadCount}>{message.unreadCount}</Text>
             </View>
           )}
         </View>
-        
+
         {message.alertType && (
           <View style={[styles.alertBadge, { backgroundColor: getAlertColor(message.alertType).bgColor }]}>
             <Text style={[styles.alertText, { color: getAlertColor(message.alertType).textColor }]}>
@@ -93,34 +95,93 @@ const MessageItem = ({ message, onPress }: { message: Message; onPress: OnPressF
   );
 };
 
-const ChatScreen = ({ message, onBack }: { message: Message; onBack: OnBackFunction }) => {
+const ChatScreen = ({ message, onBack, user }: { message: Message; onBack: OnBackFunction; user: any }) => {
   const colorScheme = useColorScheme() || 'light';
   const isDark = colorScheme === 'dark';
   const [newMessage, setNewMessage] = useState('');
-  const tabBarHeight = useBottomTabBarHeight();
-  
-  const chatHistory = [
-    { id: 1, text: `${message.alertType || 'Alert'} in ${message.location}`, isUser: false, time: '09:30 AM' },
-    { id: 2, text: 'Can you provide more details about the situation?', isUser: true, time: '09:32 AM' },
-    { id: 3, text: `${message.lastMessage}`, isUser: false, time: '09:35 AM' },
-    { id: 4, text: 'Thank you for the information. I will take necessary actions.', isUser: true, time: '09:40 AM' },
-  ];
-  
-  const sendMessage = () => {
-    if (newMessage.trim().length > 0) {
-      console.log('Sending message:', newMessage);
-      setNewMessage('');
+  const [chatHistory, setChatHistory] = useState<Message[]>([])
+
+  useEffect(() => {
+    const fetchChatHistory = async () => {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('receiver_id', message.id)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching chat history:', error);
+        return;
+      }
+
+      const formattedMessages: Message[] = data.map((msg) => ({
+        id: msg.id,
+        name: msg.sender_id === user.id ? 'You' : message.name,
+        lastMessage: msg.text,
+        time: new Date(msg.created_at).toLocaleTimeString(),
+        unreadCount: msg.is_read ? 0 : 1,
+        isOnline: true,
+        alertType: msg.alert_type,
+        location: msg.location,
+        avatar: msg.avatar_url,
+        avatarColor: msg.avatar_color,
+      }));
+
+      setChatHistory(formattedMessages);
+    };
+
+    fetchChatHistory();
+  }, [message.id, user.id]);
+
+  const sendMessage = async () => {
+    if (newMessage.trim().length === 0) return;
+
+    const { data, error } = await supabase
+      .from('messages')
+      .insert([
+        {
+          sender_id: user.id,
+          receiver_id: message.id,
+          text: newMessage,
+          alert_type: message.alertType,
+          location: message.location,
+          avatar_url: message.avatar,
+          avatar_color: message.avatarColor,
+        },
+      ])
+      .select();
+
+    if (error) {
+      console.error('Error sending message:', error);
+      return;
     }
+
+    setNewMessage('');
+    setChatHistory((prevMessages) => [
+      ...prevMessages,
+      {
+        id: data[0].id,
+        name: 'You',
+        lastMessage: newMessage,
+        time: new Date().toLocaleTimeString(),
+        unreadCount: 0,
+        isOnline: true,
+        alertType: message.alertType,
+        location: message.location,
+        avatar: message.avatar,
+        avatarColor: message.avatarColor,
+      },
+    ]);
   };
-  
+
   return (
-    <View style={[styles.container, { paddingBottom: tabBarHeight }]}>
+    <View style={[styles.container]}>
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#f8f9fa' }]}>
       <View style={[styles.chatHeader, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <IconSymbol size={24} name="chevron.left" color={Colors[colorScheme].tint} />
         </TouchableOpacity>
-        
+
         <View style={styles.userAvatar}>
           {message.avatar ? (
             <Image source={{ uri: message.avatar }} style={styles.avatarImage} />
@@ -130,97 +191,92 @@ const ChatScreen = ({ message, onBack }: { message: Message; onBack: OnBackFunct
             </View>
           )}
         </View>
-        
+
         <View style={styles.chatHeaderInfo}>
           <Text style={[styles.chatHeaderName, { color: isDark ? '#fff' : '#000' }]}>{message.name}</Text>
           <Text style={styles.chatHeaderStatus}>
             {message.isOnline ? 'Online' : `Last seen ${message.lastSeen || 'recently'}`}
           </Text>
         </View>
-        
+
         <TouchableOpacity style={styles.headerButton}>
           <IconSymbol size={20} name="phone" color={Colors[colorScheme].tint} />
         </TouchableOpacity>
-        
+
         <TouchableOpacity style={styles.headerButton}>
           <IconSymbol size={20} name="ellipsis" color={Colors[colorScheme].tint} />
         </TouchableOpacity>
       </View>
-      
+
       <ScrollView style={styles.chatMessages}>
-        {message.alertType && (
-          <View style={styles.alertInfoCard}>
-            <View style={[styles.alertIconContainer, { backgroundColor: getAlertColor(message.alertType).bgColor }]}>
-              <IconSymbol size={20} name="exclamationmark.triangle" color={getAlertColor(message.alertType).textColor} />
-            </View>
-            <View style={styles.alertInfoContent}>
-              <Text style={styles.alertInfoTitle}>{message.alertType} Alert</Text>
-              <Text style={styles.alertInfoLocation}>{message.location}</Text>
-              <Text style={styles.alertInfoTime}>Reported: {message.reportedTime || message.time}</Text>
-            </View>
-          </View>
-        )}
-        
         {chatHistory.map((chat) => (
-          <View 
-            key={chat.id} 
+          <View
+            key={chat.id}
             style={[
               styles.chatBubbleContainer,
-              chat.isUser ? styles.userBubbleContainer : styles.contactBubbleContainer
+              chat.name === 'You' ? styles.userBubbleContainer : styles.contactBubbleContainer,
             ]}
           >
-            <View 
+            <View
               style={[
                 styles.chatBubble,
-                chat.isUser 
-                  ? [styles.userBubble, { backgroundColor: isDark ? '#0b5a93' : '#e3f2fd' }] 
-                  : [styles.contactBubble, { backgroundColor: isDark ? '#333' : '#f1f1f1' }]
+                chat.name === 'You'
+                  ? [styles.userBubble, { backgroundColor: isDark ? '#0b5a93' : '#e3f2fd' }]
+                  : [styles.contactBubble, { backgroundColor: isDark ? '#333' : '#f1f1f1' }],
               ]}
             >
-              <Text style={[
-                styles.chatBubbleText, 
-                { color: chat.isUser ? (isDark ? '#fff' : '#0d47a1') : (isDark ? '#fff' : '#333') }
-              ]}>
-                {chat.text}
+              <Text
+                style={[
+                  styles.chatBubbleText,
+                  { color: chat.name === 'You' ? (isDark ? '#fff' : '#0d47a1') : (isDark ? '#fff' : '#333') },
+                ]}
+              >
+                {chat.lastMessage}
               </Text>
               <Text style={styles.chatBubbleTime}>{chat.time}</Text>
             </View>
           </View>
         ))}
       </ScrollView>
-      
+
       <View style={[styles.inputContainer, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
         <TouchableOpacity style={styles.attachButton}>
           <IconSymbol size={20} name="paperclip" color={Colors[colorScheme].tint} />
         </TouchableOpacity>
-        
+
         <TextInput
-          style={[styles.messageInput, { 
-            backgroundColor: isDark ? '#333' : '#f1f1f1',
-            color: isDark ? '#fff' : '#000' 
-          }]}
+          style={[
+            styles.messageInput,
+            {
+              backgroundColor: isDark ? '#333' : '#f1f1f1',
+              color: isDark ? '#fff' : '#000',
+            },
+          ]}
           placeholder="Type a message..."
           placeholderTextColor={isDark ? '#aaa' : '#999'}
           value={newMessage}
           onChangeText={setNewMessage}
         />
-        
-        <TouchableOpacity 
-          style={[styles.sendButton, { 
-            backgroundColor: newMessage.trim().length > 0 ? '#6366f1' : (isDark ? '#333' : '#f1f1f1') 
-          }]}
+
+        <TouchableOpacity
+          style={[
+            styles.sendButton,
+            {
+              backgroundColor: newMessage.trim().length > 0 ? '#6366f1' : isDark ? '#333' : '#f1f1f1',
+            },
+          ]}
           onPress={sendMessage}
           disabled={newMessage.trim().length === 0}
         >
-          <IconSymbol 
-            size={20} 
-            name="paperplane.fill" 
-            color={newMessage.trim().length > 0 ? '#fff' : (isDark ? '#555' : '#999')} 
+          <IconSymbol
+            size={20}
+            name="paperplane.fill"
+            color={newMessage.trim().length > 0 ? '#fff' : isDark ? '#555' : '#999'}
           />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
-    </View>
+  </View>
   );
 };
 
@@ -244,56 +300,66 @@ const getAlertColor = (alertType: string) => {
   }
 };
 
+
 export default function MessagesPage() {
   const colorScheme = useColorScheme() || 'light';
   const isDark = colorScheme === 'dark';
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
-  const tabBarHeight = useBottomTabBarHeight();
-  
-  const messages: Message[] = [
-    { 
-      id: 1, 
-      name: 'Gaborone Emergency Center', 
-      lastMessage: 'Water levels rising in Gaborone coastal area. Deploy flood barriers ASAP.',
-      time: '2 min ago',
-      unreadCount: 3,
-      isOnline: true,
-      alertType: 'Flooding',
-      location: 'Gaborone coastal area',
-      avatarColor: '#4285F4',
-      reportedTime: 'Today at 09:15 AM',
-      lastSeen: 'just now'
-    },
-  ];
-  
-  const filteredMessages = messages.filter(message => {
-    const matchesSearch = 
-      message.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      message.lastMessage.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (message.location && message.location.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    if (filter === 'all') return matchesSearch;
-    if (filter === 'unread') return matchesSearch && message.unreadCount > 0;
-    if (filter === 'alerts') return matchesSearch && message.alertType;
-    return matchesSearch;
-  });
-  
+  const [messages, setMessages] = useState<Message[]>([]);
+  const { user } = useAuth();
+  const safeUser = user ?? { id: 'default-id' };
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching messages:', error);
+        return;
+      }
+
+      const formattedMessages: Message[] = data.map((msg) => ({
+        id: msg.id,
+        name: msg.sender_id === safeUser.id ? 'You' : 'Other User',
+        lastMessage: msg.text,
+        time: new Date(msg.created_at).toLocaleTimeString(),
+        unreadCount: msg.is_read ? 0 : 1,
+        isOnline: true,
+        alertType: msg.alert_type,
+        location: msg.location,
+        avatar: msg.avatar_url,
+        avatarColor: msg.avatar_color,
+      }));
+
+      setMessages(formattedMessages);
+    };
+
+    fetchMessages();
+  }, [safeUser.id]);
+  const navigation = useNavigation();
   const handleMessagePress: OnPressFunction = (message) => {
     setSelectedMessage(message);
   };
-  
+
   const handleBack: OnBackFunction = () => {
     setSelectedMessage(null);
   };
-  
-  if (selectedMessage) {
-    return <ChatScreen message={selectedMessage} onBack={handleBack} />;
+
+  const handleNewMessage = () =>{
+    router.replace('/newMessage')
   }
   
+  if (selectedMessage) {
+    return <ChatScreen message={selectedMessage} onBack={handleBack} user={user} />;
+  }
+
   return (
-    <View style={[styles.container, { paddingBottom: tabBarHeight }]}>
+    <View style={[styles.container]}>
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#f8f9fa' }]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Messages</Text>
@@ -306,7 +372,7 @@ export default function MessagesPage() {
           )}
         </TouchableOpacity>
       </View>
-      
+
       <View style={[styles.searchContainer, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
         <View style={[styles.searchBar, { backgroundColor: isDark ? '#333' : '#f1f1f1' }]}>
           <IconSymbol size={20} name="magnifyingglass" color={isDark ? '#aaa' : '#999'} />
@@ -324,98 +390,32 @@ export default function MessagesPage() {
           )}
         </View>
       </View>
-      
-      <View style={styles.filterContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity 
-            style={[
-              styles.filterButton, 
-              filter === 'all' && [styles.activeFilter, { backgroundColor: isDark ? '#6366f1' : '#e8eaff' }]
-            ]}
-            onPress={() => setFilter('all')}
-          >
-            <Text 
-              style={[
-                styles.filterText, 
-                filter === 'all' && { color: isDark ? '#fff' : '#6366f1', fontWeight: '600' }
-              ]}
-            >
-              All Messages
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[
-              styles.filterButton, 
-              filter === 'unread' && [styles.activeFilter, { backgroundColor: isDark ? '#6366f1' : '#e8eaff' }]
-            ]}
-            onPress={() => setFilter('unread')}
-          >
-            <Text 
-              style={[
-                styles.filterText, 
-                filter === 'unread' && { color: isDark ? '#fff' : '#6366f1', fontWeight: '600' }
-              ]}
-            >
-              Unread
-            </Text>
-            {messages.reduce((count, msg) => count + msg.unreadCount, 0) > 0 && (
-              <View style={styles.filterBadge}>
-                <Text style={styles.filterBadgeText}>{messages.reduce((count, msg) => count + msg.unreadCount, 0)}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[
-              styles.filterButton, 
-              filter === 'alerts' && [styles.activeFilter, { backgroundColor: isDark ? '#6366f1' : '#e8eaff' }]
-            ]}
-            onPress={() => setFilter('alerts')}
-          >
-            <Text 
-              style={[
-                styles.filterText, 
-                filter === 'alerts' && { color: isDark ? '#fff' : '#6366f1', fontWeight: '600' }
-              ]}
-            >
-              Alerts
-            </Text>
-            <View style={styles.filterBadge}>
-              <Text style={styles.filterBadgeText}>
-                {messages.filter(msg => msg.alertType).length}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
-      
+
       <FlatList
-        data={filteredMessages}
-        keyExtractor={item => item.id.toString()}
+        data={messages}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <MessageItem message={item} onPress={handleMessagePress} />}
         style={styles.messagesList}
-        contentContainerStyle={{ paddingBottom: 20 }}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <IconSymbol size={40} name="bubble.left.fill" color={isDark ? '#555' : '#ccc'} />
-            <Text style={[styles.emptyText, { color: isDark ? '#aaa' : '#777' }]}>
-              No messages found
-            </Text>
+            <Text style={[styles.emptyText, { color: isDark ? '#aaa' : '#777' }]}>No messages found</Text>
           </View>
         }
       />
-      
-      <TouchableOpacity 
+
+{/* Floating Button */}
+      <TouchableOpacity
         style={[styles.floatingButton, { backgroundColor: '#6366f1' }]}
-        onPress={() => console.log('New message')}
+        onPress={handleNewMessage}
       >
         <IconSymbol size={24} name="square.and.pencil" color="#fff" />
       </TouchableOpacity>
     </SafeAreaView>
-  </View>
+    </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

@@ -9,18 +9,51 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
+import { supabase } from '../app/supabase/supabaseClient';
 
+type RootStackParamList = {
+  'login': undefined;
+};
 export default function ForgotPassScreen() {
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  
+  const handleBackLogin = () => {
+    navigation.navigate('login');
+  };
 
-  const handleResetPassword = () => {
-    console.log('Reset password for:', email);
-    router.replace('/login');
+  const handleResetPassword = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'yourapp://reset-password',
+      });
+
+      if (error) throw error;
+
+      Alert.alert(
+        'Password Reset Email Sent',
+        'Check your email for a link to reset your password',
+        [{ text: 'OK', onPress: () => navigation.navigate('login') }]
+      );
+    } catch (error: any) {
+      Alert.alert('Error resetting password', error.message);
+      console.error('Error resetting password:', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -69,30 +102,36 @@ export default function ForgotPassScreen() {
               </View>
 
               {/* Reset Password Button */}
-              <TouchableOpacity onPress={handleResetPassword} style={styles.loginButton}>
+              <TouchableOpacity 
+                onPress={handleResetPassword} 
+                style={styles.loginButton}
+                disabled={loading}
+              >
                 <LinearGradient
                   colors={['#1a237e', '#3949ab']}
                   style={styles.loginGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
-                  <Text style={styles.loginButtonText}>RESET PASSWORD</Text>
+                  <Text style={styles.loginButtonText}>
+                    {loading ? 'SENDING EMAIL...' : 'RESET PASSWORD'}
+                  </Text>
                 </LinearGradient>
               </TouchableOpacity>
 
               {/* Back to Login */}
               <View style={styles.signupContainer}>
                 <Text style={styles.noAccountText}>Remember your password? </Text>
-                <TouchableOpacity onPress={() => router.replace('/login')}>
+                <TouchableOpacity onPress={handleBackLogin}
+                style={({ pressed }) => [
+                  { opacity: pressed ? 0.5 : 1 }
+                ]}>
+                  
                   <Text style={styles.signupText}>Login</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            <View style={styles.decorationBottom}>
-              <View style={styles.circle3} />
-              <View style={styles.circle4} />
-            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>

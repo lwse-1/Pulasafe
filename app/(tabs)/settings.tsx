@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, SafeAreaView, TextInput, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, SafeAreaView, TextInput, Image, Alert } from 'react-native';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { router } from 'expo-router';
+import { supabase } from '../supabase/supabase'; // Initialize Supabase client
 
 // Define the SFSymbols6_0 type
 type SFSymbols6_0 = "chevron.right" | "person.fill" | "camera.fill" | "location.fill" | "arrow.down.doc.fill" | "trash.fill" | "arrow.clockwise" | "questionmark.circle.fill" | "exclamationmark.triangle.fill" | "text.bubble.fill" | "star.fill" | "info.circle.fill" | "doc.text.fill" | "lock.shield.fill";
@@ -32,6 +33,7 @@ interface ProfileCardProps {
   email: string;
   location: string;
   avatar?: string;
+  onEdit: () => void;
 }
 
 // Setting Item Component with Switch
@@ -92,7 +94,7 @@ const SectionHeader = ({ title }: SectionHeaderProps) => {
 };
 
 // Profile Card Component
-const ProfileCard = ({ name, email, location, avatar }: ProfileCardProps) => {
+const ProfileCard = ({ name, email, location, avatar, onEdit }: ProfileCardProps) => {
   const colorScheme = useColorScheme() || 'light';
   const isDark = colorScheme === 'dark';
 
@@ -120,7 +122,7 @@ const ProfileCard = ({ name, email, location, avatar }: ProfileCardProps) => {
           </View>
         </View>
       </View>
-      <TouchableOpacity style={styles.editProfileButton}>
+      <TouchableOpacity style={styles.editProfileButton} onPress={onEdit}>
         <Text style={styles.editProfileText}>Edit Profile</Text>
       </TouchableOpacity>
     </View>
@@ -142,15 +144,80 @@ export default function SettingsScreen() {
   const [biometricAuth, setBiometricAuth] = useState(false);
   const [analyticsCollection, setAnalyticsCollection] = useState(true);
 
-  // Create a fake user profile
-  const userProfile = {
-    name: 'Thomas Molapisi',
-    email: 'thomas.molapisi@example.com',
+  // State for user profile
+  const [userProfile, setUserProfile] = useState({
+    name: '',
+    email: '',
     location: 'Gaborone, Botswana',
-    avatar: 'https://example.com/images/avatar.jpg',
+    avatar: '',
+  });
+
+  // Fetch user details from Supabase
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, email, phone_number, avatar_url')
+          .eq('id', user.id)
+          .single();
+
+        if (data) {
+          setUserProfile({
+            name: data.full_name,
+            email: data.email,
+            location: 'Gaborone, Botswana',
+            avatar: data.avatar_url,
+          });
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  // Handle profile edit
+  const handleEditProfile = async () => {
+    Alert.prompt(
+      'Edit Profile',
+      'Enter your new name:',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Save',
+          onPress: async (newName) => {
+
+            const updatedName = newName || userProfile.name;
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              const { error } = await supabase
+                .from('profiles')
+                .update({ full_name: updatedName })
+                .eq('id', user.id);
+
+              if (!error) {
+                setUserProfile((prev) => ({ ...prev, name: updatedName }));
+                Alert.alert('Success', 'Profile updated successfully');
+              } else {
+                Alert.alert('Error', 'Failed to update profile');
+              }
+            }
+          },
+        },
+      ],
+      'plain-text',
+      userProfile.name
+    );
   };
 
-  const handleLogOut = () => {
+  // Log out the user
+  const handleLogOut = async () => {
+    await supabase.auth.signOut();
     router.replace('/login');
   };
 
@@ -167,9 +234,10 @@ export default function SettingsScreen() {
           email={userProfile.email}
           location={userProfile.location}
           avatar={userProfile.avatar}
+          onEdit={handleEditProfile}
         />
 
-        <View style={[styles.settingsSection, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
+<View style={[styles.settingsSection, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
           <SectionHeader title="NOTIFICATION PREFERENCES" />
           <SettingToggleItem
             title="Push Notifications"
@@ -328,10 +396,11 @@ export default function SettingsScreen() {
           </View>
         </View>
         
+        
         <View style={styles.logoutButton}>
-        <TouchableOpacity onPress={handleLogOut}>
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={handleLogOut}>
+            <Text style={styles.logoutText}>Log Out</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
