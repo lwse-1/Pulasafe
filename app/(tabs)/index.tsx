@@ -1,9 +1,10 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Image, TextInput } from 'react-native';
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { router } from 'expo-router';
 
 // Define the type for AlertItem props
 interface AlertItemProps {
@@ -165,6 +166,65 @@ const RiskAnalysisCard = () => {
   );
 };
 
+// New Post Bar Component
+const NewPostBar = () => {
+  const colorScheme = useColorScheme() || 'light';
+  const isDark = colorScheme === 'dark';
+  const [postText, setPostText] = useState('');
+  
+  return (
+    <View style={[styles.card, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>Create New Post</Text>
+      </View>
+      
+      <View style={styles.postInputContainer}>
+        <View style={styles.userAvatarContainer}>
+          <IconSymbol size={24} name="person.circle.fill" color={Colors[colorScheme].tint} />
+        </View>
+        
+        <TextInput
+          style={[styles.postInput, { color: isDark ? '#fff' : '#333' }]}
+          placeholder="Report an incident..."
+          placeholderTextColor={isDark ? '#aaa' : '#999'}
+          multiline
+          value={postText}
+          onChangeText={setPostText}
+        />
+      </View>
+      
+      <View style={styles.postActionsContainer}>
+        <View style={styles.postAttachmentOptions}>
+          <TouchableOpacity style={styles.attachmentButton}>
+            <IconSymbol size={20} name="camera.fill" color={Colors[colorScheme].tint} />
+            <Text style={styles.attachmentText}>Photo</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.attachmentButton}>
+            <IconSymbol size={20} name="location.fill" color={Colors[colorScheme].tint} />
+            <Text style={styles.attachmentText}>Location</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.attachmentButton}>
+            <IconSymbol size={20} name="tag.fill" color={Colors[colorScheme].tint} />
+            <Text style={styles.attachmentText}>Category</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <TouchableOpacity 
+          style={[
+            styles.postButton, 
+            { opacity: postText.trim().length > 0 ? 1 : 0.5 }
+          ]}
+          disabled={postText.trim().length === 0}
+        >
+          <Text style={styles.postButtonText}>Post</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
 // Alert Item Component with Image
 const AlertItem: React.FC<AlertItemProps> = ({ id, location, category, severity, timestamp, imageUrl, onPress }) => {
   let severityColor = '#777';
@@ -242,45 +302,32 @@ export default function HomeDashboard() {
     },
   ];
 
-  // Image carousel data
-  const carouselImages = [
-    { uri: 'https://example.com/images/disaster1.jpg', title: 'Flood in Gaborone' },
-    { uri: 'https://example.com/images/disaster2.jpg', title: 'Fire in Francistown' },
-    { uri: 'https://example.com/images/disaster3.jpg', title: 'Road damage in Maun' },
-  ];
-  
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#f8f9fa' }]}>
       <ScrollView>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Pula Safe</Text>
-          <TouchableOpacity style={styles.notificationButton}>
+          <View style={styles.headerIconsContainer}>
+
+        {/* Message Icon */}
+         <TouchableOpacity style={styles.messageButton}
+          onPress={() => router.push('/messaging')}>
+        <IconSymbol size={24} name="message.fill" color={Colors[colorScheme].text} />
+          </TouchableOpacity>
+
+         {/* Notification Icon */}
+          <TouchableOpacity style={styles.notificationButton}
+          onPress={() => router.push('/alerts')}>
             <IconSymbol size={24} name="bell.fill" color={Colors[colorScheme].text} />
             <View style={styles.notificationBadge}>
               <Text style={styles.notificationCount}>3</Text>
             </View>
           </TouchableOpacity>
         </View>
-
-        {/* Image Carousel */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carouselContainer}
-        >
-          {carouselImages.map((image, index) => (
-            <View key={index} style={styles.carouselItem}>
-              <Image 
-                source={{ uri: image.uri }} 
-                style={styles.carouselImage}
-                resizeMode="cover"
-              />
-              <View style={styles.carouselOverlay}>
-                <Text style={styles.carouselTitle}>{image.title}</Text>
               </View>
-            </View>
-          ))}
-        </ScrollView>
+
+        {/* New Post Bar (replacing the carousel) */}
+        <NewPostBar />
         
         <View style={styles.metricsContainer}>
           <View style={[styles.metricCard, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
@@ -375,7 +422,6 @@ export default function HomeDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingBottom: 85,
   },
   header: {
     flexDirection: 'row',
@@ -384,18 +430,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
+  headerIconsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
+  },
+  messageButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   notificationButton: {
     position: 'relative',
-    padding: 8,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   notificationBadge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: 0,
+    right: 0,
     backgroundColor: '#ff5252',
     borderRadius: 10,
     minWidth: 20,
@@ -404,104 +464,77 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   notificationCount: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  // Carousel styles
-  carouselContainer: {
-    paddingLeft: 16,
-    marginBottom: 16,
-  },
-  carouselItem: {
-    width: 280,
-    height: 150,
-    borderRadius: 12,
-    marginRight: 12,
-    overflow: 'hidden',
-  },
-  carouselImage: {
-    width: '100%',
-    height: '100%',
-  },
-  carouselOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 8,
-  },
-  carouselTitle: {
     color: 'white',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
   },
   metricsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 12,
-    marginBottom: 12,
+    padding: 16,
+    justifyContent: 'space-between',
   },
   metricCard: {
     flex: 1,
-    borderRadius: 12,
     padding: 16,
+    borderRadius: 12,
     marginHorizontal: 4,
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 2,
   },
   metricLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    color: '#777',
     marginBottom: 8,
   },
   metricValue: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   metricChange: {
     fontSize: 12,
   },
-  scoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 4,
+  card: {
+    margin: 16,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  scoreValue: {
-    fontSize: 28,
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  cardTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  scoreMax: {
-    fontSize: 16,
-    fontWeight: '500',
-    opacity: 0.7,
-  },
-  // WhatsApp Engagement
-  whatsappStatsContainer: {
+  viewAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
   },
-  whatsappIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#e9f9e9',
-    justifyContent: 'center',
+  viewAllText: {
+    fontSize: 14,
+    color: '#4a6ed0',
+    marginRight: 4,
+  },
+  detailsButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
   },
-  whatsappStats: {
-    flex: 1,
-  },
-  whatsappStatsValue: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 4,
+  detailsText: {
+    fontSize: 14,
+    color: '#4a6ed0',
+    marginRight: 4,
   },
   whatsappStatsLabel: {
     fontSize: 14,
@@ -634,86 +667,68 @@ const styles = StyleSheet.create({
   },
   expandButton: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
-  expandText: {
-    fontSize: 14,
-    marginRight: 4,
-    color: '#6366f1',
-  },
-  detailsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f0f1fe',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  detailsText: {
-    fontSize: 14,
-    marginRight: 4,
-    color: '#6366f1',
-  },
-  alertItem: {
-    marginBottom: 16,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#f9f9f9',
-  },
-  alertImage: {
-    width: '100%',
-    height: 120,
-  },
-  alertContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
   },
-  alertItemLeft: {
+  userIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  messageDetails: {
+    flex: 1,
+  },
+  messageTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  messageLocation: {
+    fontSize: 14,
+    color: '#777',
+  },
+  messageTime: {
+    fontSize: 12,
+    color: '#aaa',
+  },
+  riskItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
-  alertId: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginRight: 12,
-    width: 24,
-    textAlign: 'center',
-  },
-  alertDetails: {
-    flex: 1,
-  },
-  alertLocation: {
+  riskLabel: {
+    width: 120,
     fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 4,
   },
-  alertCategory: {
-    fontSize: 13,
-    opacity: 0.7,
+  progressContainer: {
+    flex: 1,
+    height: 10,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 5,
+    marginHorizontal: 12,
+    overflow: 'hidden',
   },
-  alertItemRight: {
-    alignItems: 'flex-end',
+  progressBar: {
+    height: '100%',
   },
-  severityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 4,
+  riskPercentage: {
+    width: 40,
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'right',
   },
-  severityText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  timestamp: {
-    fontSize: 12,
-    opacity: 0.7,
-  },
-  // Map
   mapContainer: {
     position: 'relative',
     height: 200,
+    margin: 16,
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -729,39 +744,69 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'white',
   },
-  riskItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  riskLabel: {
-    fontSize: 14,
-    width: 140,
-  },
-  progressContainer: {
-    flex: 1,
-    height: 8,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 4,
-    marginHorizontal: 8,
-  },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-  },
-  riskPercentage: {
-    fontSize: 14,
-    fontWeight: '500',
-    width: 40,
-    textAlign: 'right',
-  },
   recommendationItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   recommendationText: {
+    marginLeft: 12,
+    fontSize: 16,
+  },
+  // New styles for the post bar
+  postInputContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'flex-start',
+  },
+  userAvatarContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  postInput: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 120,
+    padding: 8,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 8,
+  },
+  postActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  postAttachmentOptions: {
+    flexDirection: 'row',
+  },
+  attachmentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  attachmentText: {
     fontSize: 14,
-    marginLeft: 8,
+    marginLeft: 4,
+  },
+  postButton: {
+    backgroundColor: '#4a6ed0',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  postButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });

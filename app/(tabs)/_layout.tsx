@@ -8,13 +8,13 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { BlurView } from 'expo-blur';
 
-type SFSymbols6_0 = 'house.fill' | 'bell.fill' | 'message.fill' | 'chart.bar.fill' | 'gear';
-type IconKey = 'home' | 'alerts' | 'messaging' | 'insights' | 'settings';
+
+type SFSymbols6_0 = 'house.fill' | 'eye.fill' | 'chart.bar.fill' | 'gear';
+type IconKey = 'home' | 'eye' | 'insights' | 'settings';
 
 const ICONS: Record<IconKey, { ios: SFSymbols6_0; android: string }> = {
   home: { ios: "house.fill", android: "home" },
-  alerts: { ios: "bell.fill", android: "notifications" },
-  messaging: { ios: "message.fill", android: "chat" },
+  eye: { ios: "eye.fill", android: "eye" },
   insights: { ios: "chart.bar.fill", android: "insights" },
   settings: { ios: "gear", android: "settings" }
 };
@@ -69,7 +69,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Dashboard',
           tabBarIcon: ({ color, size }) => (
             <IconSymbol 
               size={size || 24} 
@@ -80,27 +80,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="alerts"
+        name="feed"
         options={{
-          title: 'Alerts',
+          title: 'Feed',
           tabBarIcon: ({ color, size }) => (
             <IconSymbol 
               size={size || 24} 
-              name={getIcon('alerts') as SFSymbols6_0} 
-              color={color} 
-            />
-          ),
-          tabBarBadge: 7, 
-        }}
-      />
-      <Tabs.Screen
-        name="messaging"
-        options={{
-          title: 'Messaging',
-          tabBarIcon: ({ color, size }) => (
-            <IconSymbol 
-              size={size || 24} 
-              name={getIcon('messaging') as SFSymbols6_0} 
+              name={getIcon('eye') as SFSymbols6_0} 
               color={color} 
             />
           ),

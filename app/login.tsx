@@ -9,25 +9,58 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
+import { supabase } from '../app/supabase/supabaseClient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type LoginScreenProps = {
-  navigation: any;
+type RootStackParamList = {
+  '(tabs)': undefined;
+  'forgotPass': undefined;
+  'signup': undefined;
 };
 
-export default function LoginScreen({ navigation }: LoginScreenProps) {
+export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
-  const handleLogin = () => {
-    console.log('Login with:', email, password);
-    router.replace('/(tabs)');
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      if (rememberMe) {
+        await AsyncStorage.setItem('rememberMe', 'true');
+      } else {
+        await AsyncStorage.removeItem('rememberMe');
+      }
+
+      console.log('User logged in successfully:', data);
+      navigation.navigate('(tabs)');
+    } catch (error: any) {
+      Alert.alert('Error logging in', error.message);
+      console.error('Error logging in:', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleForgotPassword = () => {
@@ -35,7 +68,43 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
   };
 
   const handleSignUp = () => {
-    router.replace('/signup');
+    navigation.navigate('signup');
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      Alert.alert('Error with Google Sign In', error.message);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      Alert.alert('Error with Apple Sign In', error.message);
+    }
+  };
+
+  const handleFacebookSignIn = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      Alert.alert('Error with Facebook Sign In', error.message);
+    }
   };
 
   return (
